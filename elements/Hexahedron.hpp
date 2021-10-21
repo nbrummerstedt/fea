@@ -1,12 +1,12 @@
-#ifndef ARGYRIS_ELEMENT_HEXAHEDRON
-#define ARGYRIS_ELEMENT_HEXAHEDRON
+#ifndef FEA_ELEMENT_HEXAHEDRON
+#define FEA_ELEMENT_HEXAHEDRON
 
 #include <vector>
 #include <array>
 #include <iostream>
 #include <fstream>
 
-namespace Argyris {
+namespace FEA {
 
 using std::array;
 using std::vector;
@@ -16,7 +16,8 @@ class Hexahedron
 {
 	protected: array<Point,8> coordinates;
 	public:
-		Hex ( array<double,8> x, array<double,8> y, array<double,8> z ) : coordinates(doubles_to_points(x,y,z)) {};
+		Hex ( array<Point,8> p ) : coordinates(p) {};
+		Hex ( array<double,8> x, array<double,8> y, array<double,8> z ) : coordinates(Euclid::dbl2pnt(x,y,z)) {};
 		const vector<IntegrationPoint> 	IntegrationPoints 	( unsigned count = 8 );
 
 	protected:
@@ -27,24 +28,24 @@ class Hexahedron
 		constexpr array<double,8> z () const;
 
 		// FEM Standard functions
-		static const array<double,8> 			Shape 			( Point & );
-		static const Eigen::Matrix<double,3,8> 	ShapeDerivative ( Point & );
-		static const Eigen::Matrix<double,3,3> 	JacobianMatrix  ( Point & , array<Point,8> & );
-		static const double  					Jacobian 		( Point & , array<Point,8> & );
-		static const double  					Jacobian 		( IntegrationPoint & , array<Point,8> & );
+		array<double,8> 			Shape 			( const Point & ) const;
+		Eigen::Matrix<double,3,8> 	ShapeDerivative ( const Point & ) const;
+		Eigen::Matrix<double,3,3> 	JacobianMatrix  ( const Point & , const array<Point,8> & ) const;
+		double  Jacobian ( const Point &            , const array<Point,8> & ) const;
+		double  Jacobian ( const IntegrationPoint & , const array<Point,8> & ) const;
 
 		// This-referring FEM methods
-		const Eigen::Matrix<double,6,24>   		StrainDisplacementMatrix ( IntegrationPoint & , array<Point,8> & );
+		const Eigen::Matrix<double,6,24>   		StrainDisplacementMatrix ( const IntegrationPoint & , const array<Point,8> & );
 
 		// Useful lookups
-		static constexpr double					Volume					( array<Point,8> & );
-		const int 								PermuteNode				( int , int );
-		const array<Point,8> 					PermuteCoordinates 		( array<Point,8> , int );
+		constexpr double		Volume				( const array<Point,8> & );
+		int 					PermuteNode			( int , int );
+		array<Point,8> 			PermuteCoordinates 	( array<Point,8> , int );
 
 		// Almost data tables
-		static constexpr array<Point,8> 		doubles_to_points 		( array<double,8>, array<double,8>, array<double,8> );
-		static constexpr array<int,2> 			edge_to_endpoints 		( int );
-		static constexpr array<int,8> 			permutation_to_indices 	( int );
+		static const array<Point,8> 		doubles_to_points 		( array<double,8>, array<double,8>, array<double,8> );
+		static const array<int,2> 			edge_to_endpoints 		( int );
+		static const array<int,8> 			permutation_to_indices 	( int );
 
 		// FEM data tables
 		// const (not constexpr) simply so they don't need initialisers here
@@ -92,8 +93,7 @@ Hex::z () const { return array<double,8> {
 
 
 // Shape
-inline const array<double,8>
-Hex::Shape ( Point & v )
+inline array<double,8> Hex::Shape ( const Point & v ) const
 {
 	double x {v.x()};
 	double y {v.y()};
@@ -111,9 +111,9 @@ Hex::Shape ( Point & v )
 // shapeDerivative
 // Row N (1-3) contains all eight shape functions
 // derived with respect to direction N
-inline const
-Eigen::Matrix<double,3,8>
-Hex::ShapeDerivative ( Point & v ) {
+inline Eigen::Matrix<double,3,8>
+Hex::ShapeDerivative ( const Point & v ) const
+{
 	double x {v.x()}; double y {v.y()}; double z {v.z()};
 	Eigen::Matrix<double,3,8> D;
 	D << -(1.-y)*(1.-z), (1.-y)*(1.-z), (1.+y)*(1.-z),-(1.+y)*(1.-z),-(1.-y)*(1.+z), (1.-y)*(1.+z), (1.+y)*(1.+z),-(1.+y)*(1.+z),
@@ -123,8 +123,8 @@ Hex::ShapeDerivative ( Point & v ) {
 };
 
 // jacobianMatrix
-inline const Eigen::Matrix<double,3,3>
-Hex::JacobianMatrix ( Point & vl , array<Point,8> & ng )
+inline Eigen::Matrix<double,3,3>
+Hex::JacobianMatrix ( const Point & vl , const array<Point,8> & ng ) const
 {
 	Eigen::Matrix<double,8,3> XG;
 	XG << 	ng[0].x(), ng[0].y(), ng[0].z(),
@@ -142,13 +142,14 @@ Hex::JacobianMatrix ( Point & vl , array<Point,8> & ng )
 
 // Jacobian
 // Determinant to jacobi-matrix
-inline const double
-Hex::Jacobian ( Point & p , array<Point,8> & nodes_global )  {
+inline double
+Hex::Jacobian ( const Point & p , const array<Point,8> & nodes_global ) const
+{
 	Eigen::Matrix<double,3,3> J { JacobianMatrix ( p , nodes_global ) };
 	return { J.determinant() };
 };
-inline const double
-Hex::Jacobian ( IntegrationPoint & ip , array<Point,8> & nodes_global )  {
+inline double
+Hex::Jacobian ( const IntegrationPoint & ip , const array<Point,8> & nodes_global )  const {
 	Point p {ip.x,ip.y,ip.z};
 	Eigen::Matrix<double,3,3> J { JacobianMatrix ( p , nodes_global ) };
 	return { J.determinant() };
@@ -156,7 +157,7 @@ Hex::Jacobian ( IntegrationPoint & ip , array<Point,8> & nodes_global )  {
 
 // Strain-Displacement matrix
 inline const Eigen::Matrix<double,6,24>
-Hex::StrainDisplacementMatrix ( IntegrationPoint & evaluate_at , array<Point,8> & nodes_global )
+Hex::StrainDisplacementMatrix ( const IntegrationPoint & evaluate_at , const array<Point,8> & nodes_global )
 {
 	// Inverse Jacobian Matrix at evaluation point expanded to three dimensions
 	Point p {evaluate_at.x,evaluate_at.y,evaluate_at.z};
@@ -193,17 +194,17 @@ Hex::StrainDisplacementMatrix ( IntegrationPoint & evaluate_at , array<Point,8> 
 // Volume
 // Computes the volume of any Hex
 inline constexpr double
-Hex::Volume ( array<Point,8> & vertices )
+Hex::Volume ( const array<Point,8> & vertices )
 {
 	double V { 0. };
-	for ( IntegrationPoint ip : integration_points_linear ) {
-		V += ip.weight * Jacobian ( ip , vertices );
+	for ( int i = 0; i < 8; i++ ) {
+		V += integration_points_linear[i].weight * Jacobian ( integration_points_linear[i] , vertices );
 	}
 	return V;
 };
 
 // PermuteNode
-inline const int
+inline int
 Hex::PermuteNode( int node_index , int permutation_number ) {
 	return permutation_to_indices(permutation_number)[node_index];
 };
@@ -212,7 +213,7 @@ Hex::PermuteNode( int node_index , int permutation_number ) {
 // Takes an 8 long list of array<Point,8> and permutes according to rule
 // If (bool) rule is set true, the permutation is forward (from base to use)
 // else, the permutation is backward (from use to base)
-inline const std::array<Euclid::Point,8>
+inline std::array<Euclid::Point,8>
 Hex::PermuteCoordinates ( array<Euclid::Point,8> input, int permutation_number  ) {
 	array<Euclid::Point,8> output;
 	array<int,8> map { permutation_to_indices( permutation_number ) };
@@ -223,7 +224,7 @@ Hex::PermuteCoordinates ( array<Euclid::Point,8> input, int permutation_number  
 // double_to_point
 // Converts 3 arrays of 8 array<double,8> to one array of 8 Points
 // Should be templated and belong to euclid::Point
-inline constexpr array<Point,8>
+inline const array<Point,8>
 Hex::doubles_to_points (array<double,8> x, array<double,8> y, array<double,8> z) {
 	return array<Point,8> {{
 		{x[0],y[0],z[0]},{x[1],y[1],z[1]},{x[2],y[2],z[2]},{x[3],y[3],z[3]},
@@ -233,7 +234,7 @@ Hex::doubles_to_points (array<double,8> x, array<double,8> y, array<double,8> z)
 
 // edge_to_endpoints
 // Map between edge index 0-11 and endpoint vertex indices 0-7
-inline constexpr array<int,2>
+inline const array<int,2>
 Hex::edge_to_endpoints ( int edge_index )
 {
 	array<array<int,2>,12> table {{
@@ -244,7 +245,7 @@ Hex::edge_to_endpoints ( int edge_index )
 
 // permutation_to_indices
 // This list converts corner numbers 1-8
-inline constexpr array<int,8>
+inline const array<int,8>
 Hex::permutation_to_indices ( int permutation ) {
 	return permutation_list[permutation];
 };

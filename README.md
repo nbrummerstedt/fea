@@ -1,2 +1,2 @@
-# galerkin
-A small C++ header-only library for Finite Element Analysis
+# Argyris
+A small C++ header-only library for Finite Element Analysis. 

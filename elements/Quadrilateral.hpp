@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 
+#include "../euclid/Geometry"
+
 namespace fea {
 
 using std::array;
@@ -12,13 +14,13 @@ using Euclid::Point;
 
 class Quad
 {
-	array<Point,4> 	global_coordinates;
+	array<Point,4> nodes;
 
 	public:
-	Quad (	array<Point,4> p ) : global_coordinates(p) {};
+	Quad (	array<Point,4> p ) : nodes(p) {};
 
-}; // end class Quad
+}; // class Quad
 
-} // end namespace fea
+} // namespace fea
 
 #endif

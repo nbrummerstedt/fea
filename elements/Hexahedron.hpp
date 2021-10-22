@@ -6,6 +6,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "../euclid/Geometry"
+
 namespace fea {
 
 using std::array;
@@ -15,11 +17,11 @@ using Euclid::Point;
 class Hex
 {
 	protected:
-		array<Point,8> coordinates;
+		array<Point,8> nodes;
 
 	public:
-		Hex ( array<Point,8> p ) : coordinates(p) {};
-		Hex ( array<double,8> x, array<double,8> y, array<double,8> z ) : coordinates(Euclid::dbl2pnt(x,y,z)) {};
+		Hex ( array<Point,8> p ) : nodes(p) {};
+		Hex ( array<double,8> x, array<double,8> y, array<double,8> z ) : nodes(Euclid::dbl2pnt(x,y,z)) {};
 		const vector<IntegrationPoint> 	IntegrationPoints 	( unsigned count = 8 );
 
 	protected:
@@ -35,7 +37,7 @@ class Hex
 		double  Jacobian ( const IntegrationPoint & , const array<Point,8> & ) const;
 
 		// This-referring FEM methods
-		const Eigen::Matrix<double,6,24>   		StrainDisplacementMatrix ( const IntegrationPoint & , const array<Point,8> & );
+		const Eigen::Matrix<double,6,24> StrainDisplacementMatrix ( const IntegrationPoint & , const array<Point,8> & );
 
 		// Useful lookups
 		constexpr double		Volume				( const array<Point,8> & );
@@ -71,24 +73,18 @@ Hex::IntegrationPoints ( unsigned int count )
 // Coordinate extraction
 inline constexpr array<double,8>
 Hex::x () const { return array<double,8>{{
-	coordinates[0].x(), coordinates[1].x(),
-	coordinates[2].x(), coordinates[3].x(),
-	coordinates[4].x(), coordinates[5].x(),
-	coordinates[6].x(), coordinates[7].x() }};
+	nodes[0].x(), nodes[1].x(), nodes[2].x(), nodes[3].x(),
+	nodes[4].x(), nodes[5].x(), nodes[6].x(), nodes[7].x() }};
 };
 inline constexpr array<double,8>
 Hex::y () const { return array<double,8> {
-	coordinates[0].y(), coordinates[1].y(),
-	coordinates[2].y(), coordinates[3].y(),
-	coordinates[4].y(), coordinates[5].y(),
-	coordinates[6].y(), coordinates[7].y() };
+	nodes[0].y(), nodes[1].y(), nodes[2].y(), nodes[3].y(),
+	nodes[4].y(), nodes[5].y(), nodes[6].y(), nodes[7].y() };
 };
 inline constexpr array<double,8>
 Hex::z () const { return array<double,8> {
-	coordinates[0].z(), coordinates[1].z(),
-	coordinates[2].z(), coordinates[3].z(),
-	coordinates[4].z(), coordinates[5].z(),
-	coordinates[6].z(), coordinates[7].z() };
+	nodes[0].z(), nodes[1].z(), nodes[2].z(), nodes[3].z(),
+	nodes[4].z(), nodes[5].z(), nodes[6].z(), nodes[7].z() };
 };
 
 
@@ -143,25 +139,25 @@ Hex::JacobianMatrix ( const Point & vl , const array<Point,8> & ng ) const
 // Jacobian
 // Determinant to jacobi-matrix
 inline double
-Hex::Jacobian ( const Point & p , const array<Point,8> & nodes_global ) const
+Hex::Jacobian ( const Point & p , const array<Point,8> & nodes ) const
 {
-	Eigen::Matrix<double,3,3> J { JacobianMatrix ( p , nodes_global ) };
+	Eigen::Matrix<double,3,3> J { JacobianMatrix ( p , nodes ) };
 	return { J.determinant() };
 };
 inline double
-Hex::Jacobian ( const IntegrationPoint & ip , const array<Point,8> & nodes_global )  const {
+Hex::Jacobian ( const IntegrationPoint & ip , const array<Point,8> & nodes )  const {
 	Point p {ip.x,ip.y,ip.z};
-	Eigen::Matrix<double,3,3> J { JacobianMatrix ( p , nodes_global ) };
+	Eigen::Matrix<double,3,3> J { JacobianMatrix ( p , nodes ) };
 	return { J.determinant() };
 };
 
 // Strain-Displacement matrix
 inline const Eigen::Matrix<double,6,24>
-Hex::StrainDisplacementMatrix ( const IntegrationPoint & evaluate_at , const array<Point,8> & nodes_global )
+Hex::StrainDisplacementMatrix ( const IntegrationPoint & evaluate_at , const array<Point,8> & nodes )
 {
 	// Inverse Jacobian Matrix at evaluation point expanded to three dimensions
 	Point p {evaluate_at.x,evaluate_at.y,evaluate_at.z};
-	Eigen::Matrix<double,3,3> J { JacobianMatrix(p,nodes_global) };
+	Eigen::Matrix<double,3,3> J { JacobianMatrix(p,nodes) };
 	Eigen::Matrix<double,3,3> g { J.inverse() };
 	Eigen::Matrix<double,9,9> G = Eigen::Matrix<double,9,9>::Zero();
 	for (int i = 0; i < 3*3; i=i+3 ) { G.block<3,3>(i,i) = g; }

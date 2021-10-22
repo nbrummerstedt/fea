@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 
+#include "../euclid/Geometry"
+
 namespace fea {
 
 using std::array;
@@ -12,10 +14,10 @@ using Euclid::Point;
 
 class Tri
 {
-	array<Point,3> global_coordinates;
+	array<Point,3> nodes;
 
 	public:
-	Tri ( array<Point,3> p ) : global_coordinates(p)	{};
+	Tri ( array<Point,3> p ) : nodes(p)	{};
 
 	private:
 	// integration_points_triangle_intrinsic

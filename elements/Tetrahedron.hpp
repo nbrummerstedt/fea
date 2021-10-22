@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 
+#include "../euclid/Geometry"
+
 namespace fea {
 
 using std::array;
@@ -12,10 +14,10 @@ using Euclid::Point;
 
 class Tet
 {
-	array<Point,4>  global_coordinates;
+	array<Point,4>  nodes;
 
 	public:
-	Tet ( array<Point,4> p ) : global_coordinates(p)	{};
+	Tet ( array<Point,4> p ) : nodes(p)	{};
 	Volume( const array<Point,4> & );
 	Shape ( const Point & );
 	Shape ( const double &, const double &, const double & );

@@ -6,23 +6,23 @@
 #include <iostream>
 #include <fstream>
 
-namespace FEA {
+namespace fea {
 
 using std::array;
 using std::vector;
 using Euclid::Point;
 
-class Hexahedron
+class Hex
 {
-	protected: array<Point,8> coordinates;
+	protected:
+		array<Point,8> coordinates;
+
 	public:
 		Hex ( array<Point,8> p ) : coordinates(p) {};
 		Hex ( array<double,8> x, array<double,8> y, array<double,8> z ) : coordinates(Euclid::dbl2pnt(x,y,z)) {};
 		const vector<IntegrationPoint> 	IntegrationPoints 	( unsigned count = 8 );
 
 	protected:
-
-		// Coordinate extraction
 		constexpr array<double,8> x () const;
 		constexpr array<double,8> y () const;
 		constexpr array<double,8> z () const;
